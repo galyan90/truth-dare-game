@@ -1,0 +1,15 @@
+{
+  "name": "truth-dare-game",
+  "version": "1.0.0",
+  "description": "משחק שאלה או משימה עם Claude AI לזוגות",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["truth", "dare", "couples", "game", "hebrew", "claude-ai"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

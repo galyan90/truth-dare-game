@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>שאלה או משימה - זוגות</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #fd1d1d 100%);
+            min-height: 100vh;
+            color: white;
+            direction: rtl;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .screen {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none; }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+            color: white;
+            border: none;
+            padding: 18px 25px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .category-btn {
+            width: 100%;
+            margin: 15px 0;
+            padding: 25px;
+            font-size: 18px;
+            text-align: right;
+            position: relative;
+        }
+
+        .category-btn.level1 {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+            box-shadow: 0 8px 25px rgba(252, 182, 159, 0.4);
+        }
+
+        .category-btn.level2 {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            box-shadow: 0 8px 25px rgba(255, 154, 158, 0.4);
+        }
+
+        .category-btn.level3 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 25px rgba(118, 75, 162, 0.4);
+        }
+
+        .choice-container {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .choice-btn {
+            flex: 1;
+            padding: 35px 20px;
+            font-size: 20px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .truth-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .dare-btn {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            box-shadow: 0 8px 25px rgba(250, 112, 154, 0.4);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 35px;
+            margin: 25px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f, #4d79ff);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 12px 25px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 25px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .card-emoji {
+            font-size: 70px;
+            margin: 25px 0;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .card-text {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .stats {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-around;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .complete-btn {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            box-shadow: 0 8px 25px rgba(86, 171, 47, 0.3);
+        }
+
+        .skip-btn {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            box-shadow: 0 8px 25px rgba(255, 65, 108, 0.3);
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+            font-size: 16px;
+            padding: 12px 20px;
+        }
+
+        .api-notice {
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            transition: all 0.3s ease;
+        }
+
+        .api-notice.connected {
+            background: rgba(0, 200, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.5);
+        }
+
+        .api-notice.fallback {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid rgba(255, 165, 0, 0.5);
+        }
+
+        .api-notice.loading {
+            background: rgba(0, 150, 255, 0.2);
+            border: 1px solid rgba(0, 150, 255, 0.5);
+        }
+
+        .intensity-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .player-indicator {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 18px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 20% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-btn {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+
+        .cancel-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .screen { padding: 25px; }
+            h1 { font-size: 2.2em; }
+            .choice-btn { padding: 30px 15px; font-size: 18px; }
+            .card-text { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modal דילוג מותאם אישית -->
+    <div id="skipModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 25px;">🥃 דילוג על האתגר</h2>
+            <p style="font-size: 18px; line-height: 1.5; margin-bottom: 20px;">
+                לדלג על האתגר זה אומר לשתות!<br>
+                <strong>בטוח שאתה רוצה לדלג?</strong>
+            </p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" onclick="closeSkipModal()">
+                    ❌ חזור לאתגר
+                </button>
+                <button class="modal-btn confirm-btn" onclick="confirmSkip()">
+                    🍻 כן, לשתות!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- מסך פתיחה -->
+        <div id="start" class="screen">
+            <div class="logo">💕</div>
+            <h1>שאלה או משימה</h1>
+            <p class="subtitle">גרסת זוגות מקצועית</p>
+            <button class="btn" onclick="goToCategories()">
+                בואו נתחיל לשחק! 🎮
+            </button>
+            
+            <div id="mainApiStatus" class="api-notice loading">
+                <strong>🔄 בודק חיבור ל-Claude AI...</strong><br>
+                מנסה להתחבר לשרת<br>
+                <small>אנא המתן רגע...</small>
+            </div>
+        </div>
+
+        <!-- מסך קטגוריות -->
+        <div id="categories" class="screen hidden">
+            <button class="btn back-btn" onclick="goToStart()">← חזרה</button>
+            <h2 style="margin-bottom: 25px;">איזה דייט אתם רוצים? 💕</h2>
+            
+            <div id="categoryApiStatus" class="api-notice connected">
+                <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
+                <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
+            </div>
+
+            <button class="btn category-btn level1" onclick="startGame(1)">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 30px;">💖</span>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">היכרות קלילה</div>
+                        <div style="font-size: 14px; opacity: 0.8;">התחלה מתוקה - הכירו אחד את השני</div>
+                    </div>
+                </div>
+            </button>
+
+            <button class="btn category-btn level2" onclick="startGame(2)">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 30px;">🔥</span>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">רומנטי וחושני</div>
+                        <div style="font-size: 14px; opacity: 0.8;">מעמיקים את הקשר הרומנטי</div>
+                    </div>
+                </div>
+            </button>
+
+            <button class="btn category-btn level3" onclick="startGame(3)">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 30px;">😈</span>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">נועז והרפתקני</div>
+                        <div style="font-size: 14px; opacity: 0.8;">לזוגות שמוכנים להכל 🔥</div>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- מסך המשחק -->
+        <div id="game" class="screen hidden">
+            <button class="btn back-btn" onclick="goToCategories()">← שנה קטגוריה</button>
+            
+            <div class="player-indicator">
+                תור של שחקן <span id="currentPlayerDisplay">1</span>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">שחקן נוכחי</div>
+                    <div class="stat-value" id="playerStat">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">הושלמו</div>
+                    <div class="stat-value" style="color: #ff6b6b;" id="completedStat">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">רמה</div>
+                    <div class="stat-value" style="color: #ffd93d;" id="levelStat">1</div>
+                </div>
+            </div>
+
+            <!-- בחירת שאלה או משימה -->
+            <div id="choice">
+                <h3 style="margin-bottom: 25px;">בחר/י: שאלה או משימה?</h3>
+                <div class="choice-container">
+                    <button class="btn choice-btn truth-btn" onclick="getCard('truth')">
+                        <div style="font-size: 50px;">🤔</div>
+                        <div>שאלה</div>
+                    </button>
+                    <button class="btn choice-btn dare-btn" onclick="getCard('dare')">
+                        <div style="font-size: 50px;">🔥</div>
+                        <div>משימה</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- הצגת הקלף -->
+            <div id="cardArea" class="hidden">
+                <div class="card">
+                    <div class="card-header" id="cardType">שאלה 🎲</div>
+                    <div class="card-emoji" id="cardIcon">🤔</div>
+                    <div class="card-text" id="cardText"></div>
+                    <div class="intensity-dots" id="intensityDots"></div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn complete-btn" onclick="completeCard()">
+                        ✅ סיימתי!
+                    </button>
+                    <button class="btn skip-btn" onclick="skipCard()">
+                        🍻 דילוג / שוט
+                    </button>
+                </div>
+                
+                <button class="btn" onclick="backToChoice()" style="width: 100%; margin-top: 15px; background: rgba(255,255,255,0.2);">
+                    🔄 בחר/י שוב
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPlayerNum = 1;
+        let completedCount = 0;
+        let currentLevel = 1;
+        let usedCards = [];
+        let apiWorking = null; // null = לא נבדק עדיין, true = עובד, false = לא עובד
+
+        // תוכן מקומי כגיבוי
+        const content = {
+            truth: [
+                [
+                    'מה הדבר הכי מצחיק שקרה לך השנה?',
+                    'איזה תחביב חדש היית רוצה לנסות?',
+                    'מה הזיכרון הכי יפה מהילדות שלך?',
+                    'איזה מקום בעולם הכי חשוב לך לבקר?',
+                    'מה הדבר הכי ספונטני שעשית החודש?',
+                    'איזה שיר תמיד משפר לך את מצב הרוח?',
+                    'מה החלום הכי מוזר שחלמת לאחרונה?',
+                    'איזה סרט תוכל לראות אינסוף פעמים?',
+                    'מה המתנה הכי מקורית שקיבלת אי פעם?',
+                    'איזה אוכל אתה הכי אוהב להכין?'
+                ],
+                [
+                    'מה הרגע הכי רומנטי שחווינו יחד עד היום?',
+                    'איך אתה מרגיש כשאני מחבקת אותך חזק?',
+                    'מה הדבר הכי מושך ומפתה בי לדעתך?',
+                    'איזה מקום הכי רומנטי לדייט שלנו הבא?',
+                    'מתי הרגשת הכי מאוהב ומחובר אליי?',
+                    'מה הפנטזיה הרומנטית הכי יפה שלך איתי?',
+                    'איזה שיר הכי מזכיר לך אותי ואת הקשר שלנו?',
+                    'מה הדבר הכי חושני שאני עושה בלי לשים לב?',
+                    'איך נראה הערב הרומנטי המושלם בעיניך?',
+                    'מה הדבר הכי מתוק שעשיתי בשבילך השבוע?'
+                ],
+                [
+                    'מה הפנטזיה הכי חמה שלך איתי?',
+                    'איזה מקום בגוף שלי הכי מדליק אותך?',
+                    'איזו תנוחה הכי מעניינת אותך לנסות איתי?',
+                    'איפה המקום הכי נועז שחלמת לעשות בו אהבה?',
+                    'מה הדבר הכי סקסי שאני עושה?',
+                    'איזה חלום מיני היה לך עליי לאחרונה?',
+                    'מה הדבר הכי נועז שרצית לבקש ממני?',
+                    'איפה הכי מדליק אותך שאני אגע בך?',
+                    'איזו מילה הכי מעוררת אותך לשמוע ממני?',
+                    'איזה אביזר רומנטי מעניין אותך לנסות?'
+                ]
+            ],
+            dare: [
+                [
+                    'תן לי עיסוי כתפיים נעים למשך דקה שלמה.',
+                    'שיר לי שיר יפה בקול רם וברגש.',
+                    'עשה לי ריקוד מצחיק שיגרום לי לצחוק.',
+                    'ספר לי בדיחה טובה שתגרום לי לצחוק בקול.',
+                    'תן לי שלוש מחמאות כנות ויפות על מי שאני.',
+                    'צייר לי ציור יפה על נייר עם מסר מתוק.',
+                    'חקה חיה מעניינת ואני אנסה לנחש מה זה.',
+                    'כתוב לי הודעה מתוקה ומפתיעה על פתק.',
+                    'עשה לי פרצוף הכי מצחיק שאתה יכול.',
+                    'תן לי חיבוק חם ונעים למשך עשרים שניות.'
+                ],
+                [
+                    'תן לי נשיקה עדינה ורכה על המצח שלי.',
+                    'חבק אותי חיבוק איטי וחם למשך דקה שלמה.',
+                    'לחש לי משהו רומנטי ומתוק ישירות לאוזן.',
+                    'הסתכל לי עמוק בעיניים למשך דקה ללא הפסקה.',
+                    'תן לי עיסוי ידיים עדין ומרגיע בתנועות איטיות.',
+                    'כתוב לי פתק אהבה קצר ויפה מהלב.',
+                    'נשק לי את כף היד בעדינות כמו נסיך.',
+                    'ספר לי בפירוט למה אתה אוהב אותי.',
+                    'תן לי ליטוף עדין ורך על הלחי שלי.',
+                    'חבק אותי מאחורה בעדינות ואמור משהו יפה.'
+                ],
+                [
+                    'תן לי נשיקה נלהבת על הצוואר.',
+                    'לחש לי משהו מפתה ישירות לאוזן.',
+                    'הסתכל עליי במבט שיגרום לי להתרגש.',
+                    'תן לי מגע עדין במקום שהכי מדליק אותי.',
+                    'הראה לי בתנועות איך אתה הכי רוצה אותי.',
+                    'תן לי עיסוי חושני ואיטי למשך דקה.',
+                    'נשק אותי נשיקה שאני אזכור כל הלילה.',
+                    'ספר לי בפירוט על הפנטזיה שלך איתי.',
+                    'תן לי ליטוף איטי שיגרום לי לרצות אותך.',
+                    'הסתכל עליי כאילו אתה הולך לטרוף אותי.'
+                ]
+            ]
+        };
+
+        // פונקציות ניווט
+        function goToStart() {
+            hideAllScreens();
+            document.getElementById('start').classList.remove('hidden');
+        }
+
+        function goToCategories() {
+            hideAllScreens();
+            document.getElementById('categories').classList.remove('hidden');
+            updateApiStatus();
+        }
+
+        function hideAllScreens() {
+            document.getElementById('start').classList.add('hidden');
+            document.getElementById('categories').classList.add('hidden');
+            document.getElementById('game').classList.add('hidden');
+        }
+
+        function startGame(level) {
+            currentLevel = level;
+            currentPlayerNum = 1;
+            completedCount = 0;
+            usedCards = [];
+            
+            hideAllScreens();
+            document.getElementById('game').classList.remove('hidden');
+            updateDisplay();
+            showChoice();
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentPlayerDisplay').textContent = currentPlayerNum;
+            document.getElementById('playerStat').textContent = currentPlayerNum;
+            document.getElementById('completedStat').textContent = completedCount;
+            document.getElementById('levelStat').textContent = currentLevel;
+        }
+
+        function showChoice() {
+            document.getElementById('choice').classList.remove('hidden');
+            document.getElementById('cardArea').classList.add('hidden');
+        }
+
+        // פונקציה מעודכנת לקריאת קלף עם API
+        async function getCard(type) {
+            console.log('🎯 מבקש קלף:', type, 'רמה:', currentLevel);
+            
+            // ניסיון ראשון: Claude API
+            try {
+                console.log('🤖 מנסה Claude API...');
+                
+                const response = await fetch('/api/claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: type,
+                        level: currentLevel,
+                        category: getLevelName(currentLevel)
+                    })
+                });
+
+                console.log('📡 API Response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📥 API Response:', data);
+                    
+                    if (data.success && data.card) {
+                        console.log('✅ קלף חדש מ-Claude AI:', data.card);
+                        displayCard(data.card, type, 'ai');
+                        apiWorking = true;
+                        updateApiStatus();
+                        return;
+                    }
+                }
+                
+                throw new Error('API response not successful');
+                
+            } catch (error) {
+                console.log('⚠️ Claude API לא זמין:', error.message);
+                apiWorking = false;
+                updateApiStatus();
+            }
+
+            // גיבוי: תוכן מקומי
+            console.log('💎 משתמש בתוכן מקומי');
+            const cards = content[type][currentLevel - 1];
+            const availableCards = cards.filter(card => !usedCards.includes(card));
+            
+            let selectedCard;
+            if (availableCards.length === 0) {
+                selectedCard = cards[Math.floor(Math.random() * cards.length)];
+                usedCards = [];
+            } else {
+                selectedCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+            }
+            
+            displayCard(selectedCard, type, 'local');
+        }
+
+        function getLevelName(level) {
+            switch(level) {
+                case 1: return 'היכרות קלילה';
+                case 2: return 'רומנטי וחושני';
+                case 3: return 'נועז והרפתקני';
+                default: return 'כללי';
+            }
+        }
+
+        function displayCard(cardText, type, source) {
+            usedCards.push(cardText);
+            
+            document.getElementById('cardType').textContent = 
+                (type === 'truth' ? 'שאלה' : 'משימה') + ' 🎲' + 
+                (source === 'ai' ? ' 🤖' : ' 💎');
+            
+            document.getElementById('cardIcon').textContent = type === 'truth' ? '🤔' : '🔥';
+            document.getElementById('cardText').textContent = cardText;
+            
+            // עדכן נקודות עוצמה
+            const dotsContainer = document.getElementById('intensityDots');
+            dotsContainer.innerHTML = '';
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot' + (i <= currentLevel ? ' active' : '');
+                dotsContainer.appendChild(dot);
+            }
+            
+            document.getElementById('choice').classList.add('hidden');
+            document.getElementById('cardArea').classList.remove('hidden');
+        }
+
+        function updateApiStatus() {
+            const mainStatus = document.getElementById('mainApiStatus');
+            const categoryStatus = document.getElementById('categoryApiStatus');
+            
+            if (apiWorking === true) {
+                if (mainStatus) {
+                    mainStatus.className = 'api-notice connected';
+                    mainStatus.innerHTML = `
+                        <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                        המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
+                        <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
+                    `;
+                }
+                if (categoryStatus) {
+                    categoryStatus.className = 'api-notice connected';
+                    categoryStatus.innerHTML = `
+                        <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                        המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
+                        <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
+                    `;
+                }
+            } else if (apiWorking === false) {
+                if (mainStatus) {
+                    mainStatus.className = 'api-notice fallback';
+                    mainStatus.innerHTML = `
+                        <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
+                        Claude API לא זמין כרגע<br>
+                        <small>יש לך מאות שאלות ומשימות מעולות!</small>
+                    `;
+                }
+                if (categoryStatus) {
+                    categoryStatus.className = 'api-notice fallback';
+                    categoryStatus.innerHTML = `
+                        <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
+                        Claude API לא זמין כרגע<br>
+                        <small>יש לך מאות שאלות ומשימות מעולות!</small>
+                    `;
+                }
+            }
+        }
+
+        function completeCard() {
+            completedCount++;
+            currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
+            updateDisplay();
+            showChoice();
+        }
+
+        function backToChoice() {
+            showChoice();
+        }
+
+        function skipCard() {
+            document.getElementById('skipModal').style.display = 'block';
+        }
+
+        function closeSkipModal() {
+            document.getElementById('skipModal').style.display = 'none';
+        }
+
+        function confirmSkip() {
+            document.getElementById('skipModal').style.display = 'none';
+            
+            currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
+            updateDisplay();
+            showChoice();
+            
+            setTimeout(() => {
+                showDrinkMessage();
+            }, 200);
+        }
+
+        function showDrinkMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 15px;
+                text-align: center;
+                font-size: 20px;
+                font-weight: bold;
+                z-index: 2000;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                border: 2px solid rgba(255,255,255,0.3);
+            `;
+            messageDiv.innerHTML = `
+                <div style="font-size: 40px; margin-bottom: 15px;">🍻</div>
+                <div>זמן לשתות! פעם הבאה יותר אומץ 😉</div>
+                <div style="font-size: 16px; margin-top: 10px;">עוברים לשחקן ${currentPlayerNum}</div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                document.body.removeChild(messageDiv);
+            }, 3000);
+        }
+
+        // בדיקת API בהתחלה
+        async function checkApiOnStart() {
+            try {
+                console.log('🔍 בודק זמינות Claude API...');
+                
+                const response = await fetch('/api/claude', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'truth',
+                        level: 1,
+                        category: 'בדיקה'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('✅ Claude API זמין ועובד!');
+                        apiWorking = true;
+                    } else {
+                        throw new Error('API test failed');
+                    }
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch (error) {
+                console.log('⚠️ Claude API לא זמין בעת ההתחלה:', error.message);
+                apiWorking = false;
+            }
+            
+            updateApiStatus();
+        }
+
+        // התחלה
+        window.addEventListener('DOMContentLoaded', function() {
+            checkApiOnStart();
+        });
+    </script>
+</body>
+</html>
