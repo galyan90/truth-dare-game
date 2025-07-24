@@ -92,7 +92,16 @@ export default async function handler(req, res) {
             headers: {
               'Content-Type': 'application/json',
               'x-goog-api-key': process.env.GEMINI_API_KEY
-            },
+            }
+      } catch (error) {
+        console.error(`💥 Error in attempt ${attempts}:`, error.message);
+        
+        // מיד עוצר את הלולאה עבור rate limit - לא מנסה שוב
+        if (response.status === 429) {
+          console.log('🚫 Rate limit - stopping attempts');
+          break;
+        }
+      },
             body: JSON.stringify({
               contents: [{
                 parts: [{ text: prompt }]
@@ -145,9 +154,11 @@ export default async function handler(req, res) {
             console.log(`⚠️ Generated content failed validation (attempt ${attempts}):`, validation.errors);
           }
         }
-      } catch (error) {
-        console.error(`💥 Error in attempt ${attempts}:`, error.message);
-      }
+              // מיד עוצר את הלולאה עבור rate limit - לא מנסה שוב
+        if (response.status === 429) {
+          console.log('🚫 Rate limit - stopping attempts');
+          break;
+        }
     }
 
     // אם כל הניסיונות נכשלו - fallback לתוכן מקומי
