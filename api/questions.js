@@ -73,103 +73,103 @@ export default async function handler(req, res) {
 
     console.log('🤖 Sending request to Gemini API...');
 
-    // בניית הפרומפט המתקדם
-    const prompt = buildCouplesTherapistPrompt(mappedType, mappedDifficulty, category);
+    // ניסיון ראשון עם פרומפט משופר
+    let cardText = null;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    // קריאה ל-Gemini API עם המודל המעודכן
-    const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': process.env.GEMINI_API_KEY
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.85,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 120,
-            candidateCount: 1
-          },
-          safetySettings: getCouplesSafetySettings(mappedDifficulty)
-        })
+    while (!cardText && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🎯 Attempt ${attempts}/${maxAttempts}`);
+
+      try {
+        const prompt = buildImprovedPrompt(mappedType, mappedDifficulty, category, attempts);
+        
+        const response = await fetch(
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': process.env.GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: prompt }]
+              }],
+              generationConfig: {
+                temperature: attempts === 1 ? 0.7 : 0.9, // יותר יצירתיות בניסיונות נוספים
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 100,
+                candidateCount: 1
+              },
+              safetySettings: getImprovedSafetySettings(mappedDifficulty)
+            })
+          }
+        );
+
+        console.log(`📥 Gemini API response status (attempt ${attempts}):`, response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Gemini API error (attempt ${attempts}):`, response.status, errorText);
+          continue; // ניסיון הבא
+        }
+
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && 
+            data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+          
+          const rawText = data.candidates[0].content.parts[0].text;
+          const cleanText = cleanHebrewText(rawText);
+          const validation = validateImprovedContent(cleanText, mappedType, mappedDifficulty);
+          
+          if (validation.isValid) {
+            cardText = cleanText;
+            console.log(`✅ High quality card generated on attempt ${attempts}:`, cardText.substring(0, 50) + '...');
+            
+            return res.status(200).json({ 
+              success: true, 
+              card: cardText,
+              source: 'gemini-ai',
+              timestamp: new Date().toISOString(),
+              type: type,
+              level: level,
+              category: category,
+              validation: validation,
+              attempts: attempts
+            });
+          } else {
+            console.log(`⚠️ Generated content failed validation (attempt ${attempts}):`, validation.errors);
+          }
+        }
+      } catch (error) {
+        console.error(`💥 Error in attempt ${attempts}:`, error.message);
       }
-    );
-
-    console.log('📥 Gemini API response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Gemini API error:', response.status, errorText);
-      
-      return res.status(response.status).json({ 
-        success: false, 
-        error: `Gemini API error: ${response.status}`,
-        details: errorText.substring(0, 200)
-      });
     }
 
-    const data = await response.json();
-    console.log('✅ Gemini API response received successfully');
-
-    // בדיקת תקינות התגובה
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      console.error('❌ Invalid response format from Gemini API');
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Invalid response format from Gemini API' 
-      });
-    }
-
-    // ניקוי הטקסט העברי
-    const rawText = data.candidates[0].content.parts[0].text;
-    const cardText = cleanHebrewText(rawText);
-
-    // בדיקת איכות התוכן העברי
-    const validation = validateHebrewContent(cardText, mappedType, mappedDifficulty);
-    
-    if (!validation.isValid) {
-      console.error('❌ Generated content validation failed:', validation.errors);
-      
-      // נסיון fallback עם תוכן מקומי
-      const fallbackContent = getFallbackContent(mappedType, mappedDifficulty, category);
-      
-      return res.status(200).json({ 
-        success: true, 
-        card: fallbackContent,
-        source: 'fallback-local',
-        timestamp: new Date().toISOString(),
-        type: type,
-        level: level,
-        category: category,
-        validation: validation
-      });
-    }
-
-    console.log('🎯 Successfully generated card:', cardText.substring(0, 50) + '...');
+    // אם כל הניסיונות נכשלו - fallback לתוכן מקומי
+    console.log('🔄 All attempts failed, using fallback content');
+    const fallbackContent = getImprovedFallbackContent(mappedType, mappedDifficulty, category);
     
     return res.status(200).json({ 
       success: true, 
-      card: cardText,
-      source: 'gemini-ai',
+      card: fallbackContent,
+      source: 'fallback-improved',
       timestamp: new Date().toISOString(),
       type: type,
       level: level,
       category: category,
-      validation: validation
+      attempts: attempts
     });
 
   } catch (error) {
     console.error('💥 Unexpected error:', error);
     
-    // fallback במקרה של שגיאה
     const { type, level, category } = req.body || {};
-    const fallbackContent = getFallbackContent(
+    const fallbackContent = getImprovedFallbackContent(
       type === 'truth' ? 'question' : 'task', 
       level === 'הכרות' ? 'introductory' : level === 'ספייסי' ? 'spicy' : 'bold_sexy',
       category || 'general'
@@ -185,68 +185,58 @@ export default async function handler(req, res) {
   }
 }
 
-// בניית prompt מקצועי של יועץ זוגי
-function buildCouplesTherapistPrompt(type, difficulty, category) {
-  const difficultyConfig = {
-    'introductory': {
-      hebrew: 'הכרות',
-      description: 'תוכן קליל ובטוח לזוגות בכל שלב',
-      tone: 'חם, בטוח, מעודד היכרות',
-      boundaries: 'ללא תוכן מיני או אינטימי מדי'
-    },
-    'spicy': {
-      hebrew: 'ספייסי',
-      description: 'תוכן רומנטי ומעט מתקדם',
-      tone: 'רומנטי, מעט חושני, מחבר',
-      boundaries: 'רומנטיקה וחושניות עדינה'
-    },
-    'bold_sexy': {
-      hebrew: 'סקסי',
-      description: 'תוכן אינטימי מתקדם למבוגרים',
-      tone: 'נועז, אינטימי, מלהיב',
-      boundaries: 'תוכן מיני ואינטימי למבוגרים'
-    }
-  };
+// פרומפט משופר ללא דוגמאות גרועות
+function buildImprovedPrompt(type, difficulty, category, attempt) {
 
-  const currentDiff = difficultyConfig[difficulty];
   const typeInHebrew = type === 'question' ? 'שאלה' : 'משימה';
+  const difficultyInHebrew = {
+    'introductory': 'הכרות קלילה',
+    'spicy': 'רומנטי וחושני', 
+    'bold_sexy': 'נועז והרפתקני'
+  }[difficulty];
 
-  return `👨‍⚕️ **תפקידך:** יועץ זוגי מקצועי ומומחה בתחום המיני המתמחה במשחקי זוגות טיפוליים.
+  return `אתה מומחה ביצירת תוכן לזוגות ישראלים.
 
-🎯 **משימה קלינית:**
-צור ${typeInHebrew} אחת בעברית למשחק טיפולי "אמת או חובה" לזוגות ישראלים.
+🎯 צור ${typeInHebrew} אחת חדשה ומקורית בעברית למשחק "אמת או חובה" לזוגות.
 
-📊 **נתוני המטופלים:**
-- **סוג תוכן:** ${typeInHebrew} (${type})
-- **רמת אינטימיות:** ${currentDiff.hebrew} (${difficulty})
-- **קטגוריה:** ${category}
-- **תיאור רמה:** ${currentDiff.description}
-- **גישה טיפולית:** ${currentDiff.tone}
-- **גבולות מקצועיים:** ${currentDiff.boundaries}
+📋 פרטי המשימה:
+- סוג: ${typeInHebrew}
+- רמה: ${difficultyInHebrew}
+- קטגוריה: ${category}
 
-🔬 **עקרונות טיפוליים:**
-1. **שפה:** עברית טבעית ומקצועית - אסור אנגלית!
-2. **מבנה:** ${type === 'question' 
-    ? 'השאלה תתחיל במילת שאלה: מה/איך/איפה/מתי/למה/איזה' 
-    : 'המשימה תתחיל בפועל פעולה: תן/עשה/שיר/ספר/הראה/חבק'}
-3. **אורך:** 8-18 מילים - קצר ויעיל
-4. **פניה:** ישירות לבן/בת הזוג: "את/אתה/לך/שלך"
-5. **טון:** ${currentDiff.tone}
-6. **בטיחות:** ${currentDiff.boundaries}
+✅ כללים חשובים:
+1. תוכן בעברית בלבד - אסור אנגלית!
+2. ${type === 'question' ? 'השאלה חייבת להתחיל במילת שאלה (מה/איך/איפה/מתי/למה/איזה)' : 'המשימה חייבת להתחיל בפועל פעולה (תן/עשה/ספר/שיר/הראה)'}
+3. אורך: 8-15 מילים בדיוק
+4. פנייה ישירה לבן/בת הזוג באמצעות "אתה/את/לך/שלך"
+5. תוכן מתאים, מכבד וחיובי
 
-💡 **מטרות טיפוליות:**
-- חיזוק הקשר הזוגי
-- ${type === 'question' ? 'עידוד תקשורת אמיתית וגילוי הדדי' : 'יצירת חוויות מחברות ובטוחות'}
-- פיתוח אינטימיות מתאימה לרמה
-- בניית אמון ושיתוף
+  return `אתה מומחה ביצירת תוכן לזוגות ישראלים.
 
-🎪 **הוראה קלינית:**
-החזר **רק** את הטקסט העברי של ה${typeInHebrew} - ללא הסברים, ללא תוספות. תוכן מקצועי, טיפולי ומדויק:`;
+🎯 צור ${typeInHebrew} אחת חדשה ומקורית בעברית למשחק "אמת או חובה" לזוגות.
+
+📋 פרטי המשימה:
+- סוג: ${typeInHebrew}
+- רמה: ${difficultyInHebrew}
+- קטגוריה: ${category}
+
+✅ כללים חשובים:
+1. תוכן בעברית בלבד - אסור אנגלית!
+2. ${type === 'question' ? 'השאלה חייבת להתחיל במילת שאלה (מה/איך/איפה/מתי/למה/איזה)' : 'המשימה חייבת להתחיל בפועל פעולה (תן/עשה/ספר/שיר/הראה)'}
+3. אורך: 8-15 מילים בדיוק
+4. פנייה ישירה לבן/בת הזוג באמצעות "אתה/את/לך/שלך"
+5. תוכן מתאים, מכבד וחיובי
+6. היה יצירתי ומקורי - אל תשתמש בביטויים שחוקים
+
+💡 הוראה: כתוב רק את הטקסט של ה${typeInHebrew} - ללא הסברים או תוספות.
+${attempt > 1 ? '\n🔄 זה ניסיון ' + attempt + ' - היה יותר יצירתי ומקורי!' : ''}
+
+ה${typeInHebrew} שלך:`;
 }
 
-// הגדרות בטיחות מותאמות לתוכן זוגות
-function getCouplesSafetySettings(difficulty) {
-  const baseSafetySettings = [
+// הגדרות בטיחות משופרות
+function getImprovedSafetySettings(difficulty) {
+  const settings = [
     {
       category: "HARM_CATEGORY_HARASSMENT",
       threshold: "BLOCK_MEDIUM_AND_ABOVE"
@@ -261,76 +251,80 @@ function getCouplesSafetySettings(difficulty) {
     }
   ];
 
-  // התאמת פילטר תוכן מיני לפי רמת הקושי
-  const sexualContentThresholds = {
+  // התאמת רמת תוכן מיני
+  const sexualThresholds = {
     'introductory': 'BLOCK_LOW_AND_ABOVE',
     'spicy': 'BLOCK_MEDIUM_AND_ABOVE',
     'bold_sexy': 'BLOCK_ONLY_HIGH'
   };
 
-  baseSafetySettings.push({
+  settings.push({
     category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-    threshold: sexualContentThresholds[difficulty] || 'BLOCK_MEDIUM_AND_ABOVE'
+    threshold: sexualThresholds[difficulty] || 'BLOCK_MEDIUM_AND_ABOVE'
   });
 
-  return baseSafetySettings;
+  return settings;
 }
 
-// ניקוי טקסט עברי מתקדם
+// ניקוי טקסט משופר
 function cleanHebrewText(text) {
   return text
     .trim()
-    // הסרת סימני ציטוט שונים
-    .replace(/^["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019]+|["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019]+$/g, '')
-    // הסרת bullet points ומספרים
-    .replace(/^\s*[-•*]\s*/, '')
+    // הסרת סימני ציטוט ופיסוק מיותרים
+    .replace(/^["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019\-\*•\.]+|["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019\-\*•\.]+$/g, '')
+    // הסרת מספרים וnumbers
     .replace(/^\s*\d+[\.\)]\s*/, '')
-    // ניקוי סימני פיסוק עבריים בעייתיים
-    .replace(/[\u05BE\u05C0\u05C3\u05C6\u05F3\u05F4]/g, '')
-    // נירמול רווחים
+    .replace(/^\s*[-•*]\s*/, '')
+    // הסרת מילים באנגלית
+    .replace(/[a-zA-Z]+/g, '')
+    // ניקוי רווחים מיותרים
     .replace(/\s+/g, ' ')
     .replace(/\n+/g, ' ')
     .trim();
 }
 
-// בדיקת איכות תוכן עברי מקצועית
-function validateHebrewContent(content, type, difficulty) {
+// בדיקת איכות משופרת
+function validateImprovedContent(content, type, difficulty) {
   const errors = [];
   let score = 1.0;
 
-  if (!content || content.length < 5) {
-    return { isValid: false, errors: ['תוכן קצר מדי'], score: 0 };
+  if (!content || content.length < 8) {
+    return { isValid: false, errors: ['תוכן קצר מדי או ריק'], score: 0 };
   }
 
-  // בדיקת יחס תווים עבריים
+  // בדיקת עברית
   const hebrewRegex = /[\u0590-\u05FF]/g;
   const hebrewChars = content.match(hebrewRegex) || [];
-  const hebrewRatio = hebrewChars.length / content.length;
+  const totalChars = content.replace(/\s+/g, '').length;
+  const hebrewRatio = totalChars > 0 ? hebrewChars.length / totalChars : 0;
   
-  if (hebrewRatio < 0.6) {
+  if (hebrewRatio < 0.8) {
     errors.push('יחס עברית נמוך מדי');
-    score -= 0.3;
+    score -= 0.4;
   }
 
   // בדיקת אורך מילים
-  const wordCount = content.split(/\s+/).length;
-  if (wordCount < 4 || wordCount > 25) {
-    errors.push(`מספר מילים לא תקין: ${wordCount}`);
-    score -= 0.2;
+  const words = content.split(/\s+/).filter(word => word.length > 0);
+  if (words.length < 6 || words.length > 18) {
+    errors.push(`מספר מילים לא מתאים: ${words.length}`);
+    score -= 0.3;
   }
 
   // בדיקת פורמט לפי סוג
   if (type === 'question') {
-    const questionStarters = /^(מה|איך|איפה|מתי|למה|איזה|באיזה|כמה|האם)/i;
+    const questionStarters = /^(מה|איך|איפה|מתי|למה|איזה|באיזה|כמה|האם|מי|מתי)/i;
     if (!questionStarters.test(content)) {
       errors.push('שאלה חייבת להתחיל במילת שאלה');
-      score -= 0.2;
+      score -= 0.4;
+    }
+    if (!content.includes('?') && !content.endsWith('?')) {
+      content += '?'; // תוספת אוטומטית של סימן שאלה
     }
   } else if (type === 'task') {
-    const actionStarters = /^(תן|עשה|שיר|ספר|הראה|חבק|נשק|לחש|צור|כתוב|בוא)/i;
+    const actionStarters = /^(תן|עשה|שיר|ספר|הראה|חבק|נשק|לחש|צור|כתוב|בוא|עזור|שחק)/i;
     if (!actionStarters.test(content)) {
       errors.push('משימה חייבת להתחיל בפועל פעולה');
-      score -= 0.2;
+      score -= 0.4;
     }
   }
 
@@ -338,7 +332,14 @@ function validateHebrewContent(content, type, difficulty) {
   const directAddress = /(את|אתה|לך|שלך|איתך|אותך)/;
   if (!directAddress.test(content)) {
     errors.push('חסרה פנייה ישירה לבן/בת הזוג');
-    score -= 0.15;
+    score -= 0.2;
+  }
+
+  // בדיקת תווים זרים
+  const englishLetters = content.match(/[a-zA-Z]/g);
+  if (englishLetters && englishLetters.length > 2) {
+    errors.push('יותר מדי אותיות באנגלית');
+    score -= 0.3;
   }
 
   const finalScore = Math.max(0, score);
@@ -348,56 +349,81 @@ function validateHebrewContent(content, type, difficulty) {
     score: finalScore,
     errors,
     hebrewRatio,
-    wordCount
+    wordCount: words.length,
+    cleanedContent: content
   };
 }
 
-// תוכן גיבוי מקומי איכותי
-function getFallbackContent(type, difficulty, category) {
-  const fallbackContent = {
+// תוכן גיבוי משופר ומגוון
+function getImprovedFallbackContent(type, difficulty, category) {
+  const improvedContent = {
     question: {
       introductory: [
-        'מה הזיכרון הכי יפה שלך איתי?',
+        'מה הזיכרון הכי יפה שלך מהשנה הזאת?',
         'איזה דבר קטן שאני עושה הכי מאושר אותך?',
-        'מה החלום שלך לדייט המושלם?',
-        'איך אתה הכי אוהב לבלות איתי?'
+        'איפה הכי בא לך לנסוע יחד איתי?',
+        'מה החלום שלך לדייט המושלם שלנו?',
+        'איזה תחביב חדש היית רוצה שננסה יחד?',
+        'מה הדבר הכי מצחיק שקרה לך השבוע?',
+        'איזה אוכל הכי בא לך שאכין לך?',
+        'מה השיר שהכי מזכיר לך אותי?'
       ],
       spicy: [
+        'מה הרגע הכי רומנטי שחווינו יחד עד היום?',
+        'איך אתה הכי אוהב שאני מחבקת אותך?',
+        'מה הדבר הכי מושך בי לדעתך?',
         'מתי הרגשת הכי מחובר אליי רגשית?',
-        'איזה מקום בגוף שלי הכי נעים לך לגעת?',
-        'מה הדבר הכי רומנטי שעשינו יחד?',
-        'איך אתה הכי אוהב שאני מחבקת אותך?'
+        'איזה מקום בגוף שלי הכי נעים לך?',
+        'מה הפנטזיה הרומנטית שלך איתي?',
+        'איך נראה הערב הרומנטי המושלם בעיניך?',
+        'מה הדבר הכי חושני שאני עושה בלי לשים לב?'
       ],
       bold_sexy: [
         'מה הפנטזיה הכי חמה שלך איתי?',
         'איפה הכי מדליק אותך שאני אגע בך?',
         'מה החלום הכי סקסי שחלמת עליי?',
-        'איזה מקום הכי מעניין אותך לעשות אהבה?'
+        'איזה מקום הכי מעניין אותך לעשות אהבה?',
+        'מה הדבר הכי סקסי שאני עושה?',
+        'איזו תנוחה הכי מעניינת אותך לנסות?',
+        'מה הדבר הכי נועז שרצית לבקש ממני?',
+        'איזה חלום מיני היה לך עליי השבוע?'
       ]
     },
     task: {
       introductory: [
-        'תן לי חיבוק חם למשך דקה שלמה',
-        'ספר לי מה אתה הכי אוהב בי',
+        'תן לי חיבוק חם ונעים למשך דקה שלמה',
+        'ספר לי שלושה דברים שאתה הכי אוהב בי',
+        'עשה לי עיסוי כתפיים רגוע למשך דקותיים',
         'שיר לי את השיר הכי אהוב עליך',
-        'עשה לי עיסוי כתפיים נעים'
+        'ספר לי על החלום הכי יפה שחלמת עליי',
+        'תן לי שלוש מחמאות כנות מהלב',
+        'עשה לי משהו שיגרום לי לצחוק',
+        'כתוב לי פתק אהבה קצר ומתוק'
       ],
       spicy: [
-        'תן לי נשיקה עדינה על המצח',
-        'לחש לי משהו מתוק לאוזן',
-        'חבק אותי מאחור למשך דקה',
-        'הסתכל לי בעיניים למשך 30 שניות'
+        'תן לי נשיקה עדינה ורכה על המצח',
+        'חבק אותי מאחור בעדינות למשך דקה',
+        'לחש לי משהו רומנטי ומתוק לאוזן',
+        'הסתכל לי בעיניים למשך חצי דקה',
+        'תן לי עיסוי ידיים עדין ומרגיע',
+        'נשק לי את כף היד כמו נסיך',
+        'ספר לי בפירוט למה אתה אוהב אותי',
+        'חבק אותי חיבוק איטי וחם'
       ],
       bold_sexy: [
         'תן לי נשיקה נלהבת על הצוואר',
-        'עשה לי עיסוי חושני למשך 3 דקות',
         'הסתכל עליי במבט שיגרום לי להתרגש',
-        'לחש לי את הפנטזיה שלך איתי'
+        'עשה לי עיסוי חושני איטי למשך שלוש דקות',
+        'לחש לי את הפנטזיה שלך איתי',
+        'תן לי מגע עדין במקום שהכי מדליק אותי',
+        'נשק אותי נשיקה שאני אזכור כל הלילה',
+        'הראה לי בתנועות איך אתה הכי רוצה אותי',
+        'תן לי ליטוף איטי שיגרום לי לרצות אותך'
       ]
     }
   };
 
-  const typeContent = fallbackContent[type] || fallbackContent.question;
+  const typeContent = improvedContent[type] || improvedContent.question;
   const difficultyContent = typeContent[difficulty] || typeContent.introductory;
   
   return difficultyContent[Math.floor(Math.random() * difficultyContent.length)];
