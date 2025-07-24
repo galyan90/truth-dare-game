@@ -407,7 +407,7 @@
             </button>
             
             <div id="mainApiStatus" class="api-notice loading">
-                <strong>🔄 בודק חיבור ל-Claude AI...</strong><br>
+                <strong>🔄 בודק חיבור ל-Gemini AI...</strong><br>
                 מנסה להתחבר לשרת<br>
                 <small>אנא המתן רגע...</small>
             </div>
@@ -419,7 +419,7 @@
             <h2 style="margin-bottom: 25px;">איזה דייט אתם רוצים? 💕</h2>
             
             <div id="categoryApiStatus" class="api-notice connected">
-                <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                <strong>🤖 מחובר ל-Gemini AI!</strong><br>
                 המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
                 <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
             </div>
@@ -651,18 +651,24 @@
         async function getCard(type) {
             console.log('🎯 מבקש קלף:', type, 'רמה:', currentLevel);
             
-            // ניסיון ראשון: Claude API
+            // ניסיון ראשון: Gemini API
             try {
-                console.log('🤖 מנסה Claude API...');
+                console.log('🤖 מנסה Gemini API...');
                 
-                const response = await fetch('/api/claude', {
+                const levelMapping = {
+                    1: 'הכרות',
+                    2: 'ספייסי', 
+                    3: 'סקסי'
+                };
+                
+                const response = await fetch('/api/questions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         type: type,
-                        level: currentLevel,
+                        level: levelMapping[currentLevel],
                         category: getLevelName(currentLevel)
                     })
                 });
@@ -674,7 +680,7 @@
                     console.log('📥 API Response:', data);
                     
                     if (data.success && data.card) {
-                        console.log('✅ קלף חדש מ-Claude AI:', data.card);
+                        console.log('✅ קלף חדש מ-Gemini AI:', data.card);
                         displayCard(data.card, type, 'ai');
                         apiWorking = true;
                         updateApiStatus();
@@ -685,7 +691,7 @@
                 throw new Error('API response not successful');
                 
             } catch (error) {
-                console.log('⚠️ Claude API לא זמין:', error.message);
+                console.log('⚠️ Gemini API לא זמין:', error.message);
                 apiWorking = false;
                 updateApiStatus();
             }
@@ -746,7 +752,7 @@
                 if (mainStatus) {
                     mainStatus.className = 'api-notice connected';
                     mainStatus.innerHTML = `
-                        <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                        <strong>🤖 מחובר ל-Gemini AI!</strong><br>
                         המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
                         <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
                     `;
@@ -754,7 +760,7 @@
                 if (categoryStatus) {
                     categoryStatus.className = 'api-notice connected';
                     categoryStatus.innerHTML = `
-                        <strong>🤖 מחובר ל-Claude AI!</strong><br>
+                        <strong>🤖 מחובר ל-Gemini AI!</strong><br>
                         המשחק יוצר תוכן חדש ומקורי בזמן אמת<br>
                         <small>כל שאלה ומשימה ייחודית ומותאמת אישית</small>
                     `;
@@ -764,7 +770,7 @@
                     mainStatus.className = 'api-notice fallback';
                     mainStatus.innerHTML = `
                         <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
-                        Claude API לא זמין כרגע<br>
+                        Gemini API לא זמין כרגע<br>
                         <small>יש לך מאות שאלות ומשימות מעולות!</small>
                     `;
                 }
@@ -772,7 +778,7 @@
                     categoryStatus.className = 'api-notice fallback';
                     categoryStatus.innerHTML = `
                         <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
-                        Claude API לא זמין כרגע<br>
+                        Gemini API לא זמין כרגע<br>
                         <small>יש לך מאות שאלות ומשימות מעולות!</small>
                     `;
                 }
@@ -844,16 +850,16 @@
         // בדיקת API בהתחלה
         async function checkApiOnStart() {
             try {
-                console.log('🔍 בודק זמינות Claude API...');
+                console.log('🔍 בודק זמינות Gemini API...');
                 
-                const response = await fetch('/api/claude', {
+                const response = await fetch('/api/questions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         type: 'truth',
-                        level: 1,
+                        level: 'הכרות',
                         category: 'בדיקה'
                     })
                 });
@@ -861,7 +867,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
-                        console.log('✅ Claude API זמין ועובד!');
+                        console.log('✅ Gemini API זמין ועובד!');
                         apiWorking = true;
                     } else {
                         throw new Error('API test failed');
@@ -870,7 +876,7 @@
                     throw new Error('API not responding');
                 }
             } catch (error) {
-                console.log('⚠️ Claude API לא זמין בעת ההתחלה:', error.message);
+                console.log('⚠️ Gemini API לא זמין בעת ההתחלה:', error.message);
                 apiWorking = false;
             }
             
