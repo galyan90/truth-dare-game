@@ -785,11 +785,12 @@
             }
         }
 
+        // 🎯 הפונקציה המעודכנת - חזרה לבחירת רמות אחרי השלמה
         function completeCard() {
             completedCount++;
             currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
             updateDisplay();
-            showChoice();
+            goToCategories(); // ← השינוי הזה!
         }
 
         function backToChoice() {
@@ -809,7 +810,7 @@
             
             currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
             updateDisplay();
-            showChoice();
+            goToCategories(); // ← גם כאן אותו שינוי!
             
             setTimeout(() => {
                 showDrinkMessage();
