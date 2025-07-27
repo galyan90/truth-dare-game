@@ -277,30 +277,70 @@ function getImprovedSafetySettings(difficulty) {
   return settings;
 }
 
-// ניקוי טקסט משופר
+// ניקוי וזיהוי טקסט גרוע מתקדם
 function cleanHebrewText(text) {
-  return text
+  let cleaned = text
     .trim()
     // הסרת סימני ציטוט ופיסוק מיותרים
     .replace(/^["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019\-\*•\.]+|["'`״″‟‛„"„"''‚'‹›«»\u201C\u201D\u2018\u2019\-\*•\.]+$/g, '')
-    // הסרת מספרים וnumbers
+    // הסרת מספרים ונumbers
     .replace(/^\s*\d+[\.\)]\s*/, '')
     .replace(/^\s*[-•*]\s*/, '')
+    // תיקון דקדוק גרוע
+    .replace(/תן\/י לשלך/g, 'תן לי')
+    .replace(/תן לשלך/g, 'תן לי')
+    .replace(/עשה\/י לשלך/g, 'עשה לי')
+    .replace(/עשה לשלך/g, 'עשה לי')
+    // תיקון "אותך/אותך" כפול
+    .replace(/אותך\/אותך/g, 'אותך')
+    .replace(/אותה\/אותה/g, 'אותה')
+    // תיקון "עיסוי ארוך"
+    .replace(/עיסוי ארוך/g, 'עיסוי קצר')
+    .replace(/מסאז\' ארוך/g, 'עיסוי קצר')
+    .replace(/מסאז\'/g, 'עיסוי')
     // הסרת מילים באנגלית
     .replace(/[a-zA-Z]+/g, '')
     // ניקוי רווחים מיותרים
     .replace(/\s+/g, ' ')
     .replace(/\n+/g, ' ')
     .trim();
+
+  // תיקון נוסף למשפטים שבורים
+  if (cleaned.includes('תן לי') && cleaned.includes('ארוך')) {
+    cleaned = cleaned.replace(/ארוך/g, 'קצר');
+  }
+
+  return cleaned;
 }
 
-// בדיקת איכות משופרת
+// בדיקת איכות חמורה יותר - דוחה תוכן גרוע
 function validateImprovedContent(content, type, difficulty) {
   const errors = [];
   let score = 1.0;
 
   if (!content || content.length < 8) {
     return { isValid: false, errors: ['תוכן קצר מדי או ריק'], score: 0 };
+  }
+
+  // רשימת ביטויים גרועים שחייבים לדחות
+  const badPhrases = [
+    'תן לשלך',
+    'עשה לשלך', 
+    'מסאז\'',
+    'עיסוי ארוך',
+    'התמקדות באזורים',
+    'אותך/אותך',
+    'אותה/אותה',
+    'שמעוררים אותך/אותך'
+  ];
+
+  // בדיקה אם יש ביטויים גרועים
+  for (const badPhrase of badPhrases) {
+    if (content.includes(badPhrase)) {
+      errors.push(`ביטוי גרוע: ${badPhrase}`);
+      score = 0; // מיד פסילה!
+      return { isValid: false, errors, score: 0 };
+    }
   }
 
   // בדיקת עברית
@@ -316,34 +356,31 @@ function validateImprovedContent(content, type, difficulty) {
 
   // בדיקת אורך מילים
   const words = content.split(/\s+/).filter(word => word.length > 0);
-  if (words.length < 6 || words.length > 18) {
+  if (words.length < 6 || words.length > 15) {
     errors.push(`מספר מילים לא מתאים: ${words.length}`);
     score -= 0.3;
   }
 
   // בדיקת פורמט לפי סוג
   if (type === 'question') {
-    const questionStarters = /^(מה|איך|איפה|מתי|למה|איזה|באיזה|כמה|האם|מי|מתי)/i;
+    const questionStarters = /^(מה|איך|איפה|מתי|למה|איזה|באיזה|כמה|האם|מי)/i;
     if (!questionStarters.test(content)) {
       errors.push('שאלה חייבת להתחיל במילת שאלה');
       score -= 0.4;
     }
-    if (!content.includes('?') && !content.endsWith('?')) {
-      content += '?'; // תוספת אוטומטית של סימן שאלה
-    }
   } else if (type === 'task') {
-    const actionStarters = /^(תן|עשה|שיר|ספר|הראה|חבק|נשק|לחש|צור|כתוב|בוא|עזור|שחק)/i;
+    const actionStarters = /^(תן לי|עשה לי|שיר לי|ספר לי|הראה לי|חבק אותי|נשק אותי)/i;
     if (!actionStarters.test(content)) {
-      errors.push('משימה חייבת להתחיל בפועל פעולה');
+      errors.push('משימה חייבת להתחיל בפועל פעולה נכון');
       score -= 0.4;
     }
   }
 
   // בדיקת פנייה ישירה
-  const directAddress = /(את|אתה|לך|שלך|איתך|אותך)/;
+  const directAddress = /(לי|אותי|איתי|שלי)/;
   if (!directAddress.test(content)) {
-    errors.push('חסרה פנייה ישירה לבן/בת הזוג');
-    score -= 0.2;
+    errors.push('חסרה פנייה ישירה נכונה');
+    score -= 0.3;
   }
 
   // בדיקת תווים זרים
@@ -356,7 +393,7 @@ function validateImprovedContent(content, type, difficulty) {
   const finalScore = Math.max(0, score);
   
   return {
-    isValid: finalScore >= 0.7,
+    isValid: finalScore >= 0.8, // סף גבוה יותר!
     score: finalScore,
     errors,
     hebrewRatio,
