@@ -128,12 +128,22 @@ export default async function handler(req, res) {
 
         const data = await response.json();
         
+        // 🔍 DEBUGGING - הדפסת התגובה הגולמית מ-Gemini
+        console.log('🔍 DEBUG - תגובה מלאה מ-Gemini:', JSON.stringify(data, null, 2));
+        
         if (data.candidates && data.candidates[0] && data.candidates[0].content && 
             data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           
           const rawText = data.candidates[0].content.parts[0].text;
+          
+          // 🔍 DEBUGGING - הדפסת הטקסט לפני ואחרי ניקוי
+          console.log('🔍 DEBUG - טקסט גולמי מ-Gemini:', rawText);
+          
           const cleanText = cleanHebrewText(rawText);
+          console.log('🔍 DEBUG - אחרי ניקוי:', cleanText);
+          
           const validation = validateImprovedContent(cleanText, mappedType, mappedDifficulty);
+          console.log('🔍 DEBUG - תוצאות validation:', validation);
           
           if (validation.isValid) {
             cardText = cleanText;
@@ -148,11 +158,19 @@ export default async function handler(req, res) {
               level: level,
               category: category,
               validation: validation,
-              attempts: attempts
+              attempts: attempts,
+              debug: {
+                rawText: rawText,
+                cleanedText: cleanText,
+                validationErrors: validation.errors
+              }
             });
           } else {
             console.log(`⚠️ Generated content failed validation (attempt ${attempts}):`, validation.errors);
+            console.log('🔍 DEBUG - תוכן שנדחה:', cleanText);
           }
+        } else {
+          console.log('🔍 DEBUG - מבנה תגובה לא תקין:', data);
         }
               // מיד עוצר את הלולאה עבור rate limit - לא מנסה שוב
         if (response.status === 429) {
