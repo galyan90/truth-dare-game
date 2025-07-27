@@ -374,6 +374,20 @@
             .choice-btn { padding: 30px 15px; font-size: 18px; }
             .card-text { font-size: 18px; }
         }
+
+        .loading-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -482,11 +496,11 @@
             <div id="choice">
                 <h3 style="margin-bottom: 25px;">בחר/י: שאלה או משימה?</h3>
                 <div class="choice-container">
-                    <button class="btn choice-btn truth-btn" onclick="getCard('truth')">
+                    <button class="btn choice-btn truth-btn" onclick="getCard('truth')" id="truthBtn">
                         <div style="font-size: 50px;">🤔</div>
                         <div>שאלה</div>
                     </button>
-                    <button class="btn choice-btn dare-btn" onclick="getCard('dare')">
+                    <button class="btn choice-btn dare-btn" onclick="getCard('dare')" id="dareBtn">
                         <div style="font-size: 50px;">🔥</div>
                         <div>משימה</div>
                     </button>
@@ -523,26 +537,26 @@
         let completedCount = 0;
         let currentLevel = 1;
         let usedCards = [];
-        let apiWorking = null; // null = לא נבדק עדיין, true = עובד, false = לא עובד
+        let apiWorking = null;
 
-        // תוכן מקומי כגיבוי
+        // תוכן מקומי משופר וחדש
         const content = {
             truth: [
                 [
                     'מה הדבר הכי מצחיק שקרה לך השנה?',
-                    'איזה תחביב חדש היית רוצה לנסות?',
+                    'איזה תחביב חדש היית רוצה לנסות יחד איתי?',
                     'מה הזיכרון הכי יפה מהילדות שלך?',
-                    'איזה מקום בעולם הכי חשוב לך לבקר?',
+                    'איזה מקום בעולם הכי חשוב לך לבקר איתי?',
                     'מה הדבר הכי ספונטני שעשית החודש?',
                     'איזה שיר תמיד משפר לך את מצב הרוח?',
                     'מה החלום הכי מוזר שחלמת לאחרונה?',
-                    'איזה סרט תוכל לראות אינסוף פעמים?',
+                    'איזה סרט תוכל לראות איתי אינסוף פעמים?',
                     'מה המתנה הכי מקורית שקיבלת אי פעם?',
                     'איזה אוכל אתה הכי אוהב להכין?'
                 ],
                 [
                     'מה הרגע הכי רומנטי שחווינו יחד עד היום?',
-                    'איך אתה מרגיש כשאני מחבקת אותך חזק?',
+                    'איך אתה מרגיש כשאני מחבק אותך חזק?',
                     'מה הדבר הכי מושך ומפתה בי לדעתך?',
                     'איזה מקום הכי רומנטי לדייט שלנו הבא?',
                     'מתי הרגשת הכי מאוהב ומחובר אליי?',
@@ -567,40 +581,40 @@
             ],
             dare: [
                 [
-                    'תן לי עיסוי כתפיים נעים למשך דקה שלמה.',
-                    'שיר לי שיר יפה בקול רם וברגש.',
-                    'עשה לי ריקוד מצחיק שיגרום לי לצחוק.',
-                    'ספר לי בדיחה טובה שתגרום לי לצחוק בקול.',
-                    'תן לי שלוש מחמאות כנות ויפות על מי שאני.',
-                    'צייר לי ציור יפה על נייר עם מסר מתוק.',
-                    'חקה חיה מעניינת ואני אנסה לנחש מה זה.',
-                    'כתוב לי הודעה מתוקה ומפתיעה על פתק.',
-                    'עשה לי פרצוף הכי מצחיק שאתה יכול.',
-                    'תן לי חיבוק חם ונעים למשך עשרים שניות.'
+                    'תן לי עיסוי כתפיים נעים למשך דקה שלמה',
+                    'שיר לי שיר יפה בקול רם וברגש',
+                    'עשה לי ריקוד מצחיק שיגרום לי לצחוק',
+                    'ספר לי בדיחה טובה שתגרום לי לצחוק בקול',
+                    'תן לי שלוש מחמאות כנות ויפות על מי שאני',
+                    'צייר לי ציור יפה על נייר עם מסר מתוק',
+                    'חקה חיה מעניינת ואני אנסה לנחש מה זה',
+                    'כתוב לי הודעה מתוקה ומפתיעה על פתק',
+                    'עשה לי פרצוף הכי מצחיק שאתה יכול',
+                    'תן לי חיבוק חם ונעים למשך עשרים שניות'
                 ],
                 [
-                    'תן לי נשיקה עדינה ורכה על המצח שלי.',
-                    'חבק אותי חיבוק איטי וחם למשך דקה שלמה.',
-                    'לחש לי משהו רומנטי ומתוק ישירות לאוזן.',
-                    'הסתכל לי עמוק בעיניים למשך דקה ללא הפסקה.',
-                    'תן לי עיסוי ידיים עדין ומרגיע בתנועות איטיות.',
-                    'כתוב לי פתק אהבה קצר ויפה מהלב.',
-                    'נשק לי את כף היד בעדינות כמו נסיך.',
-                    'ספר לי בפירוט למה אתה אוהב אותי.',
-                    'תן לי ליטוף עדין ורך על הלחי שלי.',
-                    'חבק אותי מאחורה בעדינות ואמור משהו יפה.'
+                    'תן לי נשיקה עדינה ורכה על המצח שלי',
+                    'חבק אותי חיבוק איטי וחם למשך דקה שלמה',
+                    'לחש לי משהו רומנטי ומתוק ישירות לאוזן',
+                    'הסתכל לי עמוק בעיניים למשך דקה ללא הפסקה',
+                    'תן לי עיסוי ידיים עדין ומרגיע בתנועות איטיות',
+                    'כתוב לי פתק אהבה קצר ויפה מהלב',
+                    'נשק לי את כף היד בעדינות כמו נסיך',
+                    'ספר לי בפירוט למה אתה אוהב אותי',
+                    'תן לי ליטוף עדין ורך על הלחי שלי',
+                    'חבק אותי מאחורה בעדינות ואמור משהו יפה'
                 ],
                 [
-                    'תן לי נשיקה נלהבת על הצוואר.',
-                    'לחש לי משהו מפתה ישירות לאוזן.',
-                    'הסתכל עליי במבט שיגרום לי להתרגש.',
-                    'תן לי מגע עדין במקום שהכי מדליק אותי.',
-                    'הראה לי בתנועות איך אתה הכי רוצה אותי.',
-                    'תן לי עיסוי חושני ואיטי למשך דקה.',
-                    'נשק אותי נשיקה שאני אזכור כל הלילה.',
-                    'ספר לי בפירוט על הפנטזיה שלך איתי.',
-                    'תן לי ליטוף איטי שיגרום לי לרצות אותך.',
-                    'הסתכל עליי כאילו אתה הולך לטרוף אותי.'
+                    'תן לי נשיקה נלהבת על הצוואר',
+                    'לחש לי משהו מפתה ישירות לאוזן',
+                    'הסתכל עליי במבט שיגרום לי להתרגש',
+                    'תן לי מגע עדין במקום שהכי מדליק אותי',
+                    'הראה לי בתנועות איך אתה הכי רוצה אותי',
+                    'תן לי עיסוי חושני ואיטי למשך דקה',
+                    'נשק אותי נשיקה שאני אזכור כל הלילה',
+                    'ספר לי בפירוט על הפנטזיה שלך איתי',
+                    'תן לי ליטוף איטי שיגרום לי לרצות אותך',
+                    'הסתכל עליי כאילו אתה הולך לטרוף אותי'
                 ]
             ]
         };
@@ -645,23 +659,37 @@
         function showChoice() {
             document.getElementById('choice').classList.remove('hidden');
             document.getElementById('cardArea').classList.add('hidden');
+            
+            // אפשר שוב לחצן
+            document.getElementById('truthBtn').disabled = false;
+            document.getElementById('dareBtn').disabled = false;
         }
 
-        // פונקציה מעודכנת לקריאת קלף עם API
+        // פונקציה משופרת לקריאת קלף עם API מעודכן
         async function getCard(type) {
             console.log('🎯 מבקש קלף:', type, 'רמה:', currentLevel);
             
-            // ניסיון ראשון: Gemini API
+            // נעל כפתורים
+            document.getElementById('truthBtn').disabled = true;
+            document.getElementById('dareBtn').disabled = true;
+            
+            // הוסף אינדיקטור טעינה
+            const btnText = type === 'truth' ? 'שאלה' : 'משימה';
+            const btn = document.getElementById(type === 'truth' ? 'truthBtn' : 'dareBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<div class="loading-indicator"></div><div>טוען ${btnText}...</div>`;
+            
+            // ניסיון ראשון: Gemini API המעודכן
             try {
-                console.log('🤖 מנסה Gemini API...');
+                console.log('🤖 מנסה Gemini API מעודכן...');
                 
                 const levelMapping = {
                     1: 'הכרות',
-                    2: 'ספייסי', 
-                    3: 'סקסי'
+                    2: 'רומנטי', 
+                    3: 'נועז'
                 };
                 
-                const response = await fetch('/api/questions', {
+                const response = await fetch('https://truthordare-api.vercel.app/api/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -669,8 +697,10 @@
                     body: JSON.stringify({
                         type: type,
                         level: levelMapping[currentLevel],
-                        category: getLevelName(currentLevel)
-                    })
+                        category: getLevelName(currentLevel),
+                        language: 'hebrew'
+                    }),
+                    timeout: 8000 // 8 שניות timeout
                 });
 
                 console.log('📡 API Response status:', response.status);
@@ -679,25 +709,39 @@
                     const data = await response.json();
                     console.log('📥 API Response:', data);
                     
-                    if (data.success && data.card) {
-                        console.log('✅ קלף חדש מ-Gemini AI:', data.card);
-                        displayCard(data.card, type, 'ai');
-                        apiWorking = true;
-                        updateApiStatus();
-                        return;
+                    if (data.success && data.content) {
+                        // ניקוי וולידציה של התוכן
+                        let cleanedContent = cleanHebrewContent(data.content);
+                        
+                        if (validateContent(cleanedContent, type, currentLevel)) {
+                            console.log('✅ קלף איכותי מ-Gemini AI:', cleanedContent);
+                            
+                            // החזר כפתורים למצב רגיל
+                            btn.innerHTML = originalHTML;
+                            document.getElementById('truthBtn').disabled = false;
+                            document.getElementById('dareBtn').disabled = false;
+                            
+                            displayCard(cleanedContent, type, 'ai');
+                            apiWorking = true;
+                            updateApiStatus();
+                            return;
+                        } else {
+                            console.log('⚠️ תוכן לא תקין מהAPI, עובר לגיבוי');
+                            throw new Error('Content validation failed');
+                        }
                     }
                 }
                 
                 throw new Error('API response not successful');
                 
             } catch (error) {
-                console.log('⚠️ Gemini API לא זמין:', error.message);
+                console.log('⚠️ Gemini API לא זמין או timeout:', error.message);
                 apiWorking = false;
                 updateApiStatus();
             }
 
-            // גיבוי: תוכן מקומי
-            console.log('💎 משתמש בתוכן מקומי');
+            // גיבוי: תוכן מקומי איכותי
+            console.log('💎 משתמש בתוכן מקומי איכותי');
             const cards = content[type][currentLevel - 1];
             const availableCards = cards.filter(card => !usedCards.includes(card));
             
@@ -709,7 +753,82 @@
                 selectedCard = availableCards[Math.floor(Math.random() * availableCards.length)];
             }
             
+            // החזר כפתורים למצב רגיל
+            btn.innerHTML = originalHTML;
+            document.getElementById('truthBtn').disabled = false;
+            document.getElementById('dareBtn').disabled = false;
+            
             displayCard(selectedCard, type, 'local');
+        }
+
+        // פונקציה לניקוי תוכן עברית
+        function cleanHebrewContent(content) {
+            if (!content || typeof content !== 'string') return '';
+            
+            return content
+                .trim()
+                .replace(/[""'']/g, '"')  // תקן גרשיים
+                .replace(/\s+/g, ' ')     // תקן רווחים
+                .replace(/\.{2,}/g, '.')  // תקן נקודות
+                .replace(/!{2,}/g, '!')   // תקן סימני קריאה
+                .replace(/\?{2,}/g, '?')  // תקן סימני שאלה
+                .replace(/^["']|["']$/g, '') // הסר גרשיים מהתחלה וסוף
+                .replace(/\n+/g, ' ')     // החלף שורות חדשות ברווח
+                .slice(0, 200);          // הגבל לאורך סביר
+        }
+
+        // פונקציה לוולידציה של תוכן
+        function validateContent(content, type, level) {
+            if (!content || content.length < 10) return false;
+            
+            // בדיקות בסיסיות
+            const hasHebrew = /[\u0590-\u05FF]/.test(content);
+            if (!hasHebrew) return false;
+            
+            // רשימת מילים/ביטויים לא רצויים
+            const badPhrases = [
+                'לשלך', 'בשלך', 'של אתה', 'את שלך',
+                'אמור לי', 'תגיד לי', 'תספר לי',
+                'english', 'hebrew', 'translate',
+                'ai', 'gemini', 'chatgpt', 'robot'
+            ];
+            
+            const lowerContent = content.toLowerCase();
+            for (let phrase of badPhrases) {
+                if (lowerContent.includes(phrase.toLowerCase())) {
+                    console.log('❌ תוכן מכיל ביטוי לא רצוי:', phrase);
+                    return false;
+                }
+            }
+            
+            // בדיקת התאמה לסוג
+            if (type === 'truth') {
+                const hasQuestionWords = /\b(מה|איך|למה|מתי|איפה|מי|איזה|כמה)\b/.test(content);
+                const hasQuestionMark = content.includes('?');
+                if (!hasQuestionWords && !hasQuestionMark) {
+                    console.log('❌ שאלה ללא מילת שאלה או סימן שאלה');
+                    return false;
+                }
+            } else {
+                const hasActionWords = /\b(תן|עשה|נשק|חבק|ספר|שיר|רקוד|כתוב|צייר|לחש)\b/.test(content);
+                if (!hasActionWords) {
+                    console.log('❌ משימה ללא פועל פעולה');
+                    return false;
+                }
+            }
+            
+            // בדיקת התאמה לרמה
+            if (level === 1) {
+                const inappropriateWords = ['סקס', 'מיני', 'חם', 'לוהט', 'נועז', 'פנטזיה'];
+                for (let word of inappropriateWords) {
+                    if (lowerContent.includes(word)) {
+                        console.log('❌ תוכן לא מתאים לרמה 1');
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
         }
 
         function getLevelName(level) {
@@ -770,7 +889,7 @@
                     mainStatus.className = 'api-notice fallback';
                     mainStatus.innerHTML = `
                         <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
-                        Gemini API לא זמין כרגע<br>
+                        Gemini AI לא זמין כרגע<br>
                         <small>יש לך מאות שאלות ומשימות מעולות!</small>
                     `;
                 }
@@ -778,19 +897,18 @@
                     categoryStatus.className = 'api-notice fallback';
                     categoryStatus.innerHTML = `
                         <strong>⚠️ משתמש בתוכן מקומי איכותי</strong><br>
-                        Gemini API לא זמין כרגע<br>
+                        Gemini AI לא זמין כרגע<br>
                         <small>יש לך מאות שאלות ומשימות מעולות!</small>
                     `;
                 }
             }
         }
 
-        // 🎯 הפונקציה המעודכנת - חזרה לבחירת רמות אחרי השלמה
         function completeCard() {
             completedCount++;
             currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
             updateDisplay();
-            goToCategories(); // ← השינוי הזה!
+            showChoice();
         }
 
         function backToChoice() {
@@ -810,7 +928,7 @@
             
             currentPlayerNum = currentPlayerNum === 1 ? 2 : 1;
             updateDisplay();
-            goToCategories(); // ← גם כאן אותו שינוי!
+            showChoice();
             
             setTimeout(() => {
                 showDrinkMessage();
@@ -848,12 +966,12 @@
             }, 3000);
         }
 
-        // בדיקת API בהתחלה
+        // בדיקת API מעודכנת בהתחלה
         async function checkApiOnStart() {
             try {
-                console.log('🔍 בודק זמינות Gemini API...');
+                console.log('🔍 בודק זמינות Gemini API מעודכן...');
                 
-                const response = await fetch('/api/questions', {
+                const response = await fetch('https://truthordare-api.vercel.app/api/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -861,13 +979,15 @@
                     body: JSON.stringify({
                         type: 'truth',
                         level: 'הכרות',
-                        category: 'בדיקה'
-                    })
+                        category: 'בדיקה',
+                        language: 'hebrew'
+                    }),
+                    timeout: 5000
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.success) {
+                    if (data.success && data.content) {
                         console.log('✅ Gemini API זמין ועובד!');
                         apiWorking = true;
                     } else {
