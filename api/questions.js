@@ -230,11 +230,9 @@ module.exports = async function handler(req, res) {
   console.log('🔥 Gemini API called:', req.method, new Date().toISOString());
 
   // ---- CORS configuration ----
-  const allowedOrigins = ['http://localhost:3000', 'https://your-domain.com'];
-  const origin = req.headers.origin || '*';
-  const allowOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  res.setHeader('Access-Control-Allow-Origin', allowOrigin);
-  res.setHeader('Vary', 'Origin');
+  // Allow requests from any origin like the original implementation.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  // We do not vary on origin because we accept any origin.
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-cache');
@@ -314,6 +312,9 @@ module.exports = async function handler(req, res) {
     let cardText = null;
     let attempts = 0;
     const maxAttempts = 3;
+    let lastRawText = '';
+    let lastCleanedText = '';
+    let lastValidation = null;
 
     while (!cardText && attempts < maxAttempts) {
       attempts++;
@@ -365,14 +366,18 @@ module.exports = async function handler(req, res) {
 
         const data = await response.json();
 
+        // Extract raw text and clean it
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         console.log('🔍 DEBUG – Raw text from Gemini:', rawText);
+        lastRawText = rawText;
 
         const cleanedText = cleanHebrewText(rawText);
         console.log('🔍 DEBUG – Cleaned text:', cleanedText);
+        lastCleanedText = cleanedText;
 
         const validation = validateContent(cleanedText, mappedType, mappedDifficulty, generatedSet);
         console.log('🔍 DEBUG – Validation result:', validation);
+        lastValidation = validation;
 
         if (validation.isValid) {
           cardText = cleanedText;
@@ -387,9 +392,14 @@ module.exports = async function handler(req, res) {
             timestamp: new Date().toISOString(),
             type,
             level,
-            category: cleanedCategory,
-            validation,
-            attempts
+            category,
+            validation: validation,
+            attempts,
+            debug: {
+              rawText: lastRawText,
+              cleanedText: lastCleanedText,
+              validationErrors: validation.errors
+            }
           });
         } else {
           console.log(
@@ -415,11 +425,11 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: true,
       card: fallbackContent,
-      source: 'fallback',
+      source: 'fallback-improved',
       timestamp: new Date().toISOString(),
       type,
       level,
-      category: cleanedCategory,
+      category,
       attempts
     });
   } catch (err) {
